@@ -1,1 +1,463 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Mobile Fullscreen Story Slider</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
 
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* केवल डेस्कटॉप पर दिखाने के लिए वार्निंग */
+    #desktop-warning {
+      display: none;
+      text-align: center;
+      padding: 24px;
+      font-size: 1.1rem;
+      color: #a1a1a6;
+    }
+
+    @media (min-width: 768px) {
+      #app-container {
+        display: none !important;
+      }
+      #desktop-warning {
+        display: block;
+      }
+    }
+
+    /* मुख्य मोबाइल कंटेनर */
+    #app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 14px 28px 14px;
+      position: relative;
+    }
+
+    /* स्लाइडर एरिया */
+    .slider-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      border-radius: 36px; /* पूरे स्लाइडर कंटेनर पर गोल किनारे */
+    }
+
+    /* फ़िक्स प्रोफाइल बैज (स्लाइड बदलने पर हिलेगा नहीं) */
+    .fixed-profile-badge {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10; /* इमेज और स्लाइड के ऊपर रहेगा */
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 6px 16px 6px 6px;
+      border-radius: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      pointer-events: auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .profile-pic {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid #2ed573;
+    }
+
+    .business-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .business-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    .business-tagline {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* स्लाइड्स का कंटेनर */
+    .slides-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    /* राउंडेड कार्ड स्लाइड */
+    .slide-card {
+      min-width: 100%;
+      height: 100%;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end; /* सारा कंटेंट नीचे रहेगा */
+      position: relative;
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    /* टेक्स्ट और प्रोफाइल साफ़ दिखने के लिए डार्क शेड */
+    .slide-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.6) 0%,
+        rgba(0, 0, 0, 0.05) 35%,
+        rgba(0, 0, 0, 0.75) 80%,
+        rgba(0, 0, 0, 0.95) 100%
+      );
+      z-index: 1;
+    }
+
+    /* नीचे का टेक्स्ट एरिया */
+    .slide-bottom-content {
+      position: relative;
+      z-index: 2;
+      padding-bottom: 6px;
+    }
+
+    .slide-title {
+      font-size: 1.65rem;
+      font-weight: 700;
+      line-height: 1.25;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    }
+
+    .slide-desc {
+      font-size: 0.95rem;
+      color: #d1d1d6;
+      margin-top: 10px;
+      line-height: 1.45;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+    }
+
+    /* नीचे का कंट्रोल बार (Dots + Pause Button) */
+    .bottom-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .dots-pill-container {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.35);
+      border-radius: 50%;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      width: 28px;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .dot-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      background-color: #ffffff;
+      border-radius: 10px;
+    }
+
+    .pause-btn {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+    }
+
+    .pause-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="desktop-warning">
+    <h2>📱 केवल मोबाइल डिवाइस</h2>
+    <p style="margin-top: 8px;">कृपया इस पेज को अपने मोबाइल में खोलें।</p>
+  </div>
+
+  <div id="app-container">
+    <div class="slider-wrapper" id="sliderWrapper">
+      
+      <!-- यह प्रोफाइल बैज पूरे समय यहीं स्थिर (Fixed) रहेगा -->
+      <div class="fixed-profile-badge">
+        <img src="https://lh3.googleusercontent.com/a-/ALV-UjVuOdrzwAHHdJnApD6A-ip1O9hKklPpg0DSE0YdeyyZH9UT0Day=w1394" alt="Logo" class="profile-pic">
+        <div class="business-info">
+          <span class="business-name">Resh Cyber Net</span>
+          <span class="business-tagline">Official Partner</span>
+        </div>
+      </div>
+
+      <!-- स्लाइड्स कंटेनर -->
+      <div class="slides-container" id="slidesContainer">
+        
+        <!-- स्लाइड 1 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/10/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Explore The Wild Wilderness</h2>
+            <p class="slide-desc">Step into uncharted landscapes and experience real adventures like never before.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 2 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/16/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Deep Ocean Mysteries</h2>
+            <p class="slide-desc">Discover the calm and powerful depths beneath the crashing blue waves.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 3 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/29/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Mountain Peak Challenges</h2>
+            <p class="slide-desc">Push your limits to the absolute top where the fresh mountain air meets the sky.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 4 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/48/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Futuristic Urban Living</h2>
+            <p class="slide-desc">Designed for modern fast-paced living with next-gen connected smart home devices.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 5 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/54/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Golden Hour Serenity</h2>
+            <p class="slide-desc">Unwind as daylight fades into a warm and peaceful evening sky.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 6 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/111/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Automotive Precision</h2>
+            <p class="slide-desc">Engineered for pure speed, safety, and ultimate road handling performance.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 7 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/116/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Minimalist Architecture</h2>
+            <p class="slide-desc">Clean lines, open spaces, and sustainable materials built for modern life.</p>
+          </div>
+        </div>
+
+        <!-- स्लाइड 8 -->
+        <div class="slide-card" style="background-image: url('https://picsum.photos/id/129/800/1400');">
+          <div class="slide-bottom-content">
+            <h2 class="slide-title">Green Sustainable Future</h2>
+            <p class="slide-desc">Building technologies that respect the planet and reduce the carbon footprint.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- बॉटम कंट्रोल्स -->
+    <div class="bottom-controls">
+      <div class="dots-pill-container" id="dotsContainer"></div>
+      
+      <button class="pause-btn" id="togglePlayBtn" aria-label="Pause or Play">
+        <svg id="pauseIcon" viewBox="0 0 24 24">
+          <rect x="6" y="4" width="4" height="16" rx="1.5"></rect>
+          <rect x="14" y="4" width="4" height="16" rx="1.5"></rect>
+        </svg>
+        <svg id="playIcon" viewBox="0 0 24 24" style="display: none; margin-left: 2px;">
+          <polygon points="5,3 19,12 5,21"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const SLIDE_DURATION = 4000; // 4 सेकंड
+    const slides = document.querySelectorAll('.slide-card');
+    const totalSlides = slides.length;
+    const slidesContainer = document.getElementById('slidesContainer');
+    const dotsContainer = document.getElementById('dotsContainer');
+    const togglePlayBtn = document.getElementById('togglePlayBtn');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const playIcon = document.getElementById('playIcon');
+    const sliderWrapper = document.getElementById('sliderWrapper');
+
+    let currentIndex = 0;
+    let isPaused = false;
+    let startTime = null;
+    let animationFrameId = null;
+    let elapsedBeforePause = 0;
+
+    // 1. डॉट्स तैयार करना
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.classList.add('dot');
+      if (idx === 0) dot.classList.add('active');
+      
+      const fill = document.createElement('div');
+      fill.classList.add('dot-fill');
+      dot.appendChild(fill);
+
+      dot.addEventListener('click', () => {
+        goToSlide(idx);
+      });
+
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.dot');
+
+    // 2. स्लाइड बदलना
+    function goToSlide(index) {
+      currentIndex = index;
+      slidesContainer.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+      dots.forEach((dot, idx) => {
+        const fill = dot.querySelector('.dot-fill');
+        dot.classList.remove('active');
+        fill.style.width = '0%';
+        if (idx < currentIndex) {
+          fill.style.width = '100%';
+        }
+      });
+
+      dots[currentIndex].classList.add('active');
+      elapsedBeforePause = 0;
+      startTime = performance.now();
+    }
+
+    // 3. टाइमर और प्रोग्रेस एनिमेशन
+    function stepAnimation(timestamp) {
+      if (!startTime) startTime = timestamp;
+
+      if (!isPaused) {
+        const totalElapsed = (timestamp - startTime) + elapsedBeforePause;
+        const progress = Math.min((totalElapsed / SLIDE_DURATION) * 100, 100);
+
+        const currentFill = dots[currentIndex]?.querySelector('.dot-fill');
+        if (currentFill) {
+          currentFill.style.width = `${progress}%`;
+        }
+
+        if (totalElapsed >= SLIDE_DURATION) {
+          goToSlide((currentIndex + 1) % totalSlides);
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(stepAnimation);
+    }
+
+    animationFrameId = requestAnimationFrame(stepAnimation);
+
+    // 4. प्ले/पॉज बटन
+    togglePlayBtn.addEventListener('click', () => {
+      isPaused = !isPaused;
+      if (isPaused) {
+        elapsedBeforePause += performance.now() - startTime;
+        pauseIcon.style.display = 'none';
+        playIcon.style.display = 'block';
+      } else {
+        startTime = performance.now();
+        pauseIcon.style.display = 'block';
+        playIcon.style.display = 'none';
+      }
+    });
+
+    // 5. स्वाइप जेस्चर
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    sliderWrapper.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    sliderWrapper.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const diff = touchStartX - touchEndX;
+      if (Math.abs(diff) > 45) {
+        if (diff > 0) {
+          goToSlide((currentIndex + 1) % totalSlides); // Left swipe
+        } else {
+          goToSlide((currentIndex - 1 + totalSlides) % totalSlides); // Right swipe
+        }
+      }
+    }, { passive: true });
+  </script>
+</body>
+</html>
