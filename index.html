@@ -14,14 +14,15 @@
     }
 
     body {
-      background-color: #000000;
-      color: #ffffff;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100dvh; /* 100vh की जगह 100dvh */
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
     /* केवल डेस्कटॉप पर दिखाने के लिए वार्निंग */
     #desktop-warning {
@@ -43,15 +44,17 @@
 
     /* मुख्य मोबाइल कंटेनर */
     #app-container {
-      width: 100%;
-      max-width: 480px;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 16px 14px 28px 14px;
-      position: relative;
-    }
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh; /* 100vh की जगह 100dvh */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* नीचे iPhone के बार से बचने के लिए safe-area पैडिंग */
+  padding: 12px 14px calc(14px + env(safe-area-inset-bottom)) 14px;
+  position: relative;
+  box-sizing: border-box;
+}
 
     /* स्लाइडर एरिया */
     .slider-wrapper {
@@ -68,8 +71,8 @@
     /* फ़िक्स प्रोफाइल बैज (स्लाइड बदलने पर हिलेगा नहीं) */
     .fixed-profile-badge {
       position: absolute;
-      top: 20px;
-      left: 20px;
+      top: 16px;
+      left: 16px;
       z-index: 10; /* इमेज और स्लाइड के ऊपर रहेगा */
       display: flex;
       align-items: center;
@@ -154,7 +157,7 @@
     .slide-bottom-content {
       position: relative;
       z-index: 2;
-      padding-bottom: 6px;
+      padding-bottom: 20px;
     }
 
     .slide-title {
